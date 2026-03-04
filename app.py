@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# ---------------- GLOBAL DARK THEME ----------------
+# ---------------- GLOBAL DARK UI ----------------
 st.markdown("""
 <style>
 body {
@@ -73,35 +73,10 @@ if page == "Home":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("## 🌍 Why It Matters")
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.markdown("""
-    <div class="metric-card">
-        <h3> Transaction Based</h3>
-        <p>We analyze behavioral cashflow data.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col2.markdown("""
-    <div class="metric-card">
-        <h3>🤖 AI Powered</h3>
-        <p>Dynamic credit scoring engine.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col3.markdown("""
-    <div class="metric-card">
-        <h3>💳 Financial Inclusion</h3>
-        <p>No salary slip required.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
 # ---------------- DASHBOARD ----------------
 if page == "Dashboard":
 
-    st.title(" Credit Intelligence Dashboard")
+    st.title("📊 Credit Intelligence Dashboard")
 
     uploaded_file = st.file_uploader("Upload UPI Transaction CSV", type=["csv"])
 
@@ -116,7 +91,6 @@ if page == "Dashboard":
 
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
             df = df.dropna(subset=["date"])
-
             df["month"] = df["date"].dt.strftime("%Y-%m")
 
             credits = df[df["type"].str.upper() == "CREDIT"]
@@ -169,12 +143,20 @@ if page == "Dashboard":
                 </div>
                 """, unsafe_allow_html=True)
 
-                st.markdown("## 🎯 Credit Score")
+                # -------- CREDIT SCORE GAUGE --------
+                st.markdown("##  Credit Score")
 
                 gauge = go.Figure(go.Indicator(
                     mode="gauge+number",
                     value=alt_credit_score,
-                    gauge={'axis': {'range': [300, 900]}},
+                    gauge={
+                        'axis': {'range': [300, 900]},
+                        'steps': [
+                            {'range': [300, 600], 'color': "red"},
+                            {'range': [600, 750], 'color': "orange"},
+                            {'range': [750, 900], 'color': "green"}
+                        ],
+                    }
                 ))
 
                 gauge.update_layout(
@@ -184,7 +166,7 @@ if page == "Dashboard":
 
                 st.plotly_chart(gauge, use_container_width=True)
 
-                # -------- CHART --------
+                # -------- INCOME TREND --------
                 st.markdown("## 📈 Monthly Income Trend")
 
                 bar_fig = px.bar(
@@ -202,9 +184,43 @@ if page == "Dashboard":
 
                 st.plotly_chart(bar_fig, use_container_width=True)
 
+                # -------- REPAYMENT PROBABILITY --------
                 st.markdown("### 🔮 Repayment Probability")
                 st.progress(repayment_probability / 100)
                 st.write(f"Likelihood: **{repayment_probability}%**")
+
+                # -------- LOAN DECISION ENGINE --------
+                st.markdown("## 🏦 Loan Decision")
+
+                if alt_credit_score >= 750 and repayment_probability >= 75:
+                    loan_limit = 75000
+                    message = f"""
+                    <div style='padding:25px;border-radius:15px;background:#0f5132;color:white;text-align:center;'>
+                        <h2>✅ Loan Approved</h2>
+                        <p>You are eligible for up to <b>₹ {loan_limit:,}</b></p>
+                        <p>Credit Score: {alt_credit_score}</p>
+                        <p>Repayment Probability: {repayment_probability}%</p>
+                    </div>
+                    """
+                elif alt_credit_score >= 650:
+                    loan_limit = 50000
+                    message = f"""
+                    <div style='padding:25px;border-radius:15px;background:#664d03;color:white;text-align:center;'>
+                        <h2>🟡 Conditional Approval</h2>
+                        <p>You are eligible for up to <b>₹ {loan_limit:,}</b></p>
+                        <p>Improve stability to unlock higher limit.</p>
+                    </div>
+                    """
+                else:
+                    message = f"""
+                    <div style='padding:25px;border-radius:15px;background:#842029;color:white;text-align:center;'>
+                        <h2>❌ Loan Not Approved</h2>
+                        <p>Your financial profile does not meet lending criteria.</p>
+                        <p>Improve savings & reduce expense ratio.</p>
+                    </div>
+                    """
+
+                st.markdown(message, unsafe_allow_html=True)
 
             else:
                 st.error("No income transactions found.")
@@ -230,7 +246,6 @@ if page == "Apply Loan":
 
 # ---------------- FOOTER ----------------
 st.markdown(
-    "<div style='text-align:center; color:gray; padding:30px;'>© 2026 Invisible 400M | Financial Inclusion Platform</div>",
+    "<div style='text-align:center; color:gray; padding:30px;'>© 2026 Invisible 400M | AI Financial Inclusion Platform</div>",
     unsafe_allow_html=True
 )
-
