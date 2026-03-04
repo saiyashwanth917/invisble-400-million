@@ -66,24 +66,48 @@ if page == "Dashboard":
         try:
             df = pd.read_csv(uploaded_file)
 
-            df['date'] = pd.to_datetime(df['date'])
-            df['month'] = df['date'].dt.to_period('M')
+            # Validate required columns
+            required_cols = {"date", "type", "amount"}
+            if not required_cols.issubset(df.columns):
+                st.error("CSV must contain columns: date, type, amount")
+                st.stop()
 
-            credits = df[df['type'] == "CREDIT"]
-            debits = df[df['type'] == "DEBIT"]
+            # Convert date safely
+            df["date"] = pd.to_datetime(df["date"], errors="coerce")
+            df = df.dropna(subset=["date"])
 
-            monthly_income = credits.groupby('month')['amount'].sum()
-            monthly_expense = debits.groupby('month')['amount'].sum().abs()
+            # ✅ SAFE month column (NO Period used)
+            df["month"] = df["date"].dt.strftime("%Y-%m")
 
-            avg_income = monthly_income.mean()
-            avg_expense = monthly_expense.mean()
+            credits = df[df["type"].str.upper() == "CREDIT"]
+            debits = df[df["type"].str.upper() == "DEBIT"]
+
+            # Monthly Aggregation (SAFE)
+            monthly_income = (
+                credits.groupby("month")["amount"]
+                .sum()
+                .reset_index()
+            )
+
+            monthly_expense = (
+                debits.groupby("month")["amount"]
+                .sum()
+                .abs()
+                .reset_index()
+            )
+
+            avg_income = monthly_income["amount"].mean()
+            avg_expense = monthly_expense["amount"].mean()
             savings = avg_income - avg_expense
 
-            if avg_income == 0:
+            if avg_income == 0 or np.isnan(avg_income):
                 st.error("No income transactions found.")
             else:
-                expense_ratio = avg_expense / avg_income
-                stability_score = 100 - (monthly_income.std() / avg_income * 100)
+                expense_ratio = avg_expense / avg_income if avg_income != 0 else 0
+
+                stability_score = 100 - (
+                    monthly_income["amount"].std() / avg_income * 100
+                )
                 stability_score = max(0, min(100, stability_score))
 
                 alt_credit_score = (
@@ -91,9 +115,12 @@ if page == "Dashboard":
                     (1 - expense_ratio) * 100 * 0.4 +
                     (savings / avg_income) * 100 * 0.2
                 )
+
                 alt_credit_score = int(max(300, min(900, alt_credit_score * 9)))
 
-                repayment_probability = int(min(95, max(50, 100 - expense_ratio * 100 + stability_score * 0.3)))
+                repayment_probability = int(
+                    min(95, max(50, 100 - expense_ratio * 100 + stability_score * 0.3))
+                )
 
                 # -------- METRICS --------
                 col1, col2, col3 = st.columns(3)
@@ -101,6 +128,7 @@ if page == "Dashboard":
                 col2.metric("💸 Avg Expense", f"₹ {avg_expense:,.0f}")
                 col3.metric("💾 Savings", f"₹ {savings:,.0f}")
 
+                # -------- CREDIT SCORE GAUGE --------
                 st.markdown("## 🎯 Credit Score Meter")
 
                 gauge = go.Figure(go.Indicator(
@@ -119,13 +147,20 @@ if page == "Dashboard":
 
                 st.plotly_chart(gauge, use_container_width=True)
 
+                # -------- MONTHLY INCOME BAR --------
                 st.markdown("## 📈 Monthly Income Trend")
+
                 bar_fig = px.bar(
                     monthly_income,
-                    labels={'value': 'Income', 'month': 'Month'},
+                    x="month",
+                    y="amount",
+                    labels={"month": "Month", "amount": "Income"},
+                    text_auto=True
                 )
+
                 st.plotly_chart(bar_fig, use_container_width=True)
 
+                # -------- REPAYMENT PROBABILITY --------
                 st.markdown("### 🔮 Repayment Probability")
                 st.progress(repayment_probability / 100)
                 st.write(f"Repayment Likelihood: **{repayment_probability}%**")
