@@ -79,7 +79,7 @@ if page == "Home":
 
     col1.markdown("""
     <div class="metric-card">
-        <h3>📊 Transaction Based</h3>
+        <h3> Transaction Based</h3>
         <p>We analyze behavioral cashflow data.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -101,7 +101,7 @@ if page == "Home":
 # ---------------- DASHBOARD ----------------
 if page == "Dashboard":
 
-    st.title("📊 Credit Intelligence Dashboard")
+    st.title(" Credit Intelligence Dashboard")
 
     uploaded_file = st.file_uploader("Upload UPI Transaction CSV", type=["csv"])
 
@@ -233,3 +233,4 @@ st.markdown(
     "<div style='text-align:center; color:gray; padding:30px;'>© 2026 Invisible 400M | Financial Inclusion Platform</div>",
     unsafe_allow_html=True
 )
+
